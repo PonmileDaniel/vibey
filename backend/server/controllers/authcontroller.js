@@ -48,7 +48,7 @@ export const register = async (req, res ) => {
 
         
     } catch (error) {
-        res.json({success: false, message: error.message})
+        res.status(500).json({ success: false, message: error.message });
     }
 }
 
@@ -84,7 +84,7 @@ export const login = async (req, res) => {
         return res.json({success: true})
 
     } catch (error) {
-        res.json({success: false, message: error.message})
+        res.status(500).json({ success: false, message: error.message });
     }
 
 }
@@ -100,7 +100,74 @@ export const logout = async (req, res) => {
         })
         return res.json({success: true, message: 'Logged Out'})
     }catch(error) {
-        res.json({success: false, message: error.message})
+        res.status(500).json({ success: false, message: error.message });
 
+    }
+}
+
+
+/**
+ * Verificatiion, Firstly Get userId , find user.id in db
+ */
+export const verifyotp = async (req, res) => {
+    try {
+        const {userId} = req.body
+
+        const user = await userModel.findById(userId);
+
+        // If account is already verify 
+        if(user.isAccountVerified) {
+            return res.json({success: false, message:'Account is Already verified'})
+        }
+
+        // If it is not Genertaion of Otp and saving it 
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        user.verifyotp = otp;
+        user.verifyotpExpireAt = Date.now() + 24 * 60 * 60 * 1000;
+        await user.save();
+
+        // Sending otp to User Email
+        const mailOption = {
+            from: process.env.SENDER_EMAIL,
+            to: user.email,
+            subject: 'Account Verification OTP',
+            text: `Your OTP is ${otp}. Verify your account using this otp`
+        }
+        await transport.sendMail(mailOption)
+
+        return res.json({success: true, message: 'Verification OTP sent to Email'})
+        
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+
+export const verifyEmail = async (req, res) => {
+    const { userId, otp } = req.body;
+
+    if(!userId || !otp) {
+        return res.json({success: false, message: 'Missing Details'});
+    }
+    try {
+        const user = await userModel.findById(userId);
+
+        if (!user) {
+            return res.json({success: false, message:'User not found'})
+        }
+        if (user.verifyotp === "" || user.verifyotp !== otp) {
+            return res.json({success: false, message:'Invalid OTP'})
+        }
+        if(user.verifyotpExpireAt < Date.now()) {
+            return res.json({success: false, message: 'OTP expires'})
+        }
+        user.isAccountVerified = true;
+        user.verifyotp = '';
+        user.verifyotpExpireAt = 0;
+        await user.save();
+
+        return res.json({ success: true, message: 'Email Veified Successfully'})
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 }
