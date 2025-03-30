@@ -109,7 +109,7 @@ export const logout = async (req, res) => {
 /**
  * Verificatiion, Firstly Get userId , find user.id in db
  */
-export const verifyotp = async (req, res) => {
+export const sendVerifyotp = async (req, res) => {
     try {
         const {userId} = req.body
 
@@ -120,7 +120,7 @@ export const verifyotp = async (req, res) => {
             return res.json({success: false, message:'Account is Already verified'})
         }
 
-        // If it is not Genertaion of Otp and saving it 
+        // If it is not Generate Otp and saving it 
         const otp = String(Math.floor(100000 + Math.random() * 900000));
         user.verifyotp = otp;
         user.verifyotpExpireAt = Date.now() + 24 * 60 * 60 * 1000;
@@ -169,5 +169,15 @@ export const verifyEmail = async (req, res) => {
         return res.json({ success: true, message: 'Email Veified Successfully'})
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+//Check if user isAuthenticated
+export const isAuthenticated = async(req, res) => {
+    try {
+        return res.json({success: true})
+        
+    } catch (error) {
+        res.status(500).json({ success:false, message: error.message})
     }
 }
