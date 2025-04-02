@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser'
 import connectDB from "./server/config/mongobd.js";
 import 'dotenv/config'
 import authRouter from "./server/routes/authroute.js";
+import songRoute from "./server/routes/songRoute.js";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get('/', (req,res) => {
 })
 
 app.use('/api/auth', authRouter)
+app.use('/api/song', songRoute)
 
 app.listen(PORT, () => {
     console.log(`Port running at ${PORT} `)
