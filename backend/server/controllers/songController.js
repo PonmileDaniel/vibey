@@ -2,6 +2,7 @@ import { b2, getUploadUrl } from "../config/backblaze.js";
 import Track from "../models/trackModel.js";
 import dotenv from "dotenv";
 import axios from "axios";
+import { parseBuffer } from "music-metadata";
 
 dotenv.config();
 
@@ -11,9 +12,6 @@ export const uploadTrack = async (req, res) => {
     const audioFile = req.files['audio'][0];
     const imageFile = req.files['image'] ? req.files['image'][0] : null;
     const creator = req.user._id;
-
-    // 🔹 Call `b2()` to get authorization details
-    const { apiUrl, authToken } = await b2();
 
     // 🔹 Get upload URL
     const { uploadUrl, authorizationToken } = await getUploadUrl(process.env.B2_BUCKET_ID);
@@ -38,12 +36,19 @@ export const uploadTrack = async (req, res) => {
     const audioUrl = await uploadFile(audioFile, audioFileName);
     const imageUrl = imageFile ? await uploadFile(imageFile, imageFileName) : null;
 
+    // 🔹 Extract audio metadata (duration)
+    const metadata = await parseBuffer(audioFile.buffer, audioFile.mimetype);
+    const durationInSeconds = Math.floor(metadata.format.duration || 0);
+    const formattedDuration = `${Math.floor(durationInSeconds / 60)}:${String(durationInSeconds % 60).padStart(2, "0")}`;
+
+
     const newSong = new Track({
       trackName: title,
       description,
       audioUrl,
       imageUrl,
       artistId: creator,
+      duration: formattedDuration
     });
 
     await newSong.save();
