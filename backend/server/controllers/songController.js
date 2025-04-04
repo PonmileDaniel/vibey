@@ -1,4 +1,4 @@
-import { b2, getUploadUrl } from "../config/backblaze.js";
+import { getUploadUrl } from "../config/backblaze.js";
 import Track from "../models/trackModel.js";
 import dotenv from "dotenv";
 import axios from "axios";
@@ -8,12 +8,18 @@ dotenv.config();
 
 export const uploadTrack = async (req, res) => {
   try {
+    /**
+     * Get the title and description
+     * Upload the first audio file present
+     * If image exist then get the first file otherwise set imagefile to null
+     * Get the file of the current authenticated user, which would be the artist eho uploaded the track
+     */
     const { title, description } = req.body;
     const audioFile = req.files['audio'][0];
     const imageFile = req.files['image'] ? req.files['image'][0] : null;
     const creator = req.user._id;
 
-    // 🔹 Get upload URL
+    // Get upload URL
     const { uploadUrl, authorizationToken } = await getUploadUrl(process.env.B2_BUCKET_ID);
 
     // Function to upload a file using Axios
@@ -30,13 +36,17 @@ export const uploadTrack = async (req, res) => {
       return `https://f002.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${fileName}`;
     }
 
+    /**
+     *  Timestamp to ensure uniqueness 
+     */
+
     const audioFileName = `songs/${Date.now()}_${audioFile.originalname}`;
     const imageFileName = imageFile ? `covers/${Date.now()}_${imageFile.originalname}` : null;
 
     const audioUrl = await uploadFile(audioFile, audioFileName);
     const imageUrl = imageFile ? await uploadFile(imageFile, imageFileName) : null;
 
-    // 🔹 Extract audio metadata (duration)
+    //  Extract audio metadata (duration)
     const metadata = await parseBuffer(audioFile.buffer, audioFile.mimetype);
     const durationInSeconds = Math.floor(metadata.format.duration || 0);
     const formattedDuration = `${Math.floor(durationInSeconds / 60)}:${String(durationInSeconds % 60).padStart(2, "0")}`;
@@ -59,3 +69,9 @@ export const uploadTrack = async (req, res) => {
   }
 };
 
+
+
+
+export const Album = (req, res) => {
+
+}
