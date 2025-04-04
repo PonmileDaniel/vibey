@@ -1,5 +1,6 @@
 import { getUploadUrl } from "../config/backblaze.js";
 import Track from "../models/trackModel.js";
+import Album from "../models/albumModel.js";
 import dotenv from "dotenv";
 import axios from "axios";
 import { parseBuffer } from "music-metadata";
@@ -28,9 +29,10 @@ export const uploadTrack = async (req, res) => {
       return res.status(400).json({ message: 'Image file is required'})
 
     }
-    
+
     const audioFile = req.files['audio'][0];
-    const imageFile = req.files['image'] ? req.files['image'][0] : null;
+    const imageFile = req.files['image'][0];
+    //const imageFile = req.files['image'] ? req.files['image'][0] : null;
     
     // Get upload URL
     const { uploadUrl, authorizationToken } = await getUploadUrl(process.env.B2_BUCKET_ID);
@@ -86,6 +88,88 @@ export const uploadTrack = async (req, res) => {
 
 
 
-export const Album = (req, res) => {
+export const uploadAlbum = async (req, res) => {
+  try {
+    const { albumName, description } = req.body;
+    const audioFiles = req.files["audio"]; // An array of tracks
+    const imageFile = req.files['image'][0];
+    //const imageFile = req.files["image"] ? req.files["image"][0] : null;
+    const creator = req.user._id;
 
-}
+    if (!audioFiles || audioFiles.length === 0) {
+      return res.status(400).json({ message: "No tracks provided" });
+    }
+
+    if (!req.files || !req.files['image'] || req.files['image'].length === 0)
+      return res.status(400).json({ message: 'Image file is required'})
+      
+
+    // 🔹 Get upload URL for Backblaze
+    const { uploadUrl, authorizationToken } = await getUploadUrl(process.env.B2_BUCKET_ID);
+
+    // Function to upload files to Backblaze
+    async function uploadFile(file, fileName) {
+      const headers = {
+        Authorization: authorizationToken,
+        "X-Bz-File-Name": encodeURIComponent(fileName),
+        "Content-Type": file.mimetype,
+        "X-Bz-Content-Sha1": "do_not_verify",
+      };
+      const response = await axios.post(uploadUrl, file.buffer, { headers });
+      return `https://f002.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${fileName}`;
+    }
+
+    // Upload album cover
+    const imageFileName = imageFile ? `albums/${Date.now()}_${imageFile.originalname}` : null;
+    const imageUrl = imageFile ? await uploadFile(imageFile, imageFileName) : null;
+
+    // Create album entry in DB
+    const newAlbum = new Album({
+      albumName,
+      description,
+      artistId: creator,
+      coverUrl: imageUrl,
+    });
+
+    await newAlbum.save();
+
+    // Process and upload each track
+    const trackPromises = audioFiles.map(async (audioFile) => {
+      const audioFileName = `songs/${Date.now()}_${audioFile.originalname}`;
+
+      // Extract metadata (duration)
+      const metadata = await parseBuffer(audioFile.buffer, audioFile.mimetype);
+      const durationInSeconds = Math.floor(metadata.format.duration || 0);
+      const formattedDuration = `${Math.floor(durationInSeconds / 60)}:${String(durationInSeconds % 60).padStart(2, "0")}`;
+
+      // Upload to Backblaze
+      const audioUrl = await uploadFile(audioFile, audioFileName);
+
+      // Save track in DB
+      const newTrack = new Track({
+        trackName: audioFile.originalname.split(".")[0], // Use filename as track title if not provided
+        description,
+        audioUrl,
+        artistId: creator,
+        albumId: newAlbum._id, // Link track to album
+        duration: formattedDuration,
+      });
+
+      return newTrack.save();
+    });
+
+    // Wait for all tracks to be saved
+    const savedTracks = await Promise.all(trackPromises);
+
+    // Send response
+    res.status(201).json({ 
+      message: "Album uploaded successfully!", 
+      album: newAlbum, 
+      tracks: savedTracks 
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong", error: error.message });
+  }
+};
