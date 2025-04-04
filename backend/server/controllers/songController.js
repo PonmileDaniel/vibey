@@ -15,10 +15,23 @@ export const uploadTrack = async (req, res) => {
      * Get the file of the current authenticated user, which would be the artist eho uploaded the track
      */
     const { title, description } = req.body;
-    const audioFile = req.files['audio'][0];
-    const imageFile = req.files['image'] ? req.files['image'][0] : null;
     const creator = req.user._id;
 
+    // Validate audio file 
+    if (!req.files || !req.files['audio'] || req.files['audio'].length === 0) {
+      return res.status(400).json({ message: 'Audio file is required'})
+
+    }
+
+    // Validate image file
+    if (!req.files || !req.files['image'] || req.files['image'].length === 0) {
+      return res.status(400).json({ message: 'Image file is required'})
+
+    }
+    
+    const audioFile = req.files['audio'][0];
+    const imageFile = req.files['image'] ? req.files['image'][0] : null;
+    
     // Get upload URL
     const { uploadUrl, authorizationToken } = await getUploadUrl(process.env.B2_BUCKET_ID);
 
@@ -37,7 +50,8 @@ export const uploadTrack = async (req, res) => {
     }
 
     /**
-     *  Timestamp to ensure uniqueness 
+     * Timestamp to ensure uniqueness 
+     * Upload file and imae file to B2 and gets their public URLS
      */
 
     const audioFileName = `songs/${Date.now()}_${audioFile.originalname}`;
@@ -51,7 +65,7 @@ export const uploadTrack = async (req, res) => {
     const durationInSeconds = Math.floor(metadata.format.duration || 0);
     const formattedDuration = `${Math.floor(durationInSeconds / 60)}:${String(durationInSeconds % 60).padStart(2, "0")}`;
 
-
+    // Save this track into Mongodb 
     const newSong = new Track({
       trackName: title,
       description,
