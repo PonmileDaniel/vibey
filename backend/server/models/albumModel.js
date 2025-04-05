@@ -4,7 +4,7 @@ const albumSchema = new mongoose.Schema({
     albumName: {type: String, required: true},
     description: {type: String, required: true},
     artistId: {type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    coverUrl: {type: String },
+    imageUrl: {type: String, required: true},
     createdAt: { type: Date, default: Date.now }
 });
 

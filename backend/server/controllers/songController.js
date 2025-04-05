@@ -88,12 +88,13 @@ export const uploadTrack = async (req, res) => {
 
 
 
+
+
 export const uploadAlbum = async (req, res) => {
   try {
     const { albumName, description } = req.body;
-    const audioFiles = req.files["audio"]; // An array of tracks
+    const audioFiles = req.files["tracks"]; // An array of tracks
     const imageFile = req.files['image'][0];
-    //const imageFile = req.files["image"] ? req.files["image"][0] : null;
     const creator = req.user._id;
 
     if (!audioFiles || audioFiles.length === 0) {
@@ -101,22 +102,27 @@ export const uploadAlbum = async (req, res) => {
     }
 
     if (!req.files || !req.files['image'] || req.files['image'].length === 0)
-      return res.status(400).json({ message: 'Image file is required'})
-      
-
-    // 🔹 Get upload URL for Backblaze
-    const { uploadUrl, authorizationToken } = await getUploadUrl(process.env.B2_BUCKET_ID);
+      return res.status(400).json({ message: 'Image file is required' });
 
     // Function to upload files to Backblaze
     async function uploadFile(file, fileName) {
-      const headers = {
-        Authorization: authorizationToken,
-        "X-Bz-File-Name": encodeURIComponent(fileName),
-        "Content-Type": file.mimetype,
-        "X-Bz-Content-Sha1": "do_not_verify",
-      };
-      const response = await axios.post(uploadUrl, file.buffer, { headers });
-      return `https://f002.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${fileName}`;
+      try {
+        // Get a new upload URL and auth token for each file upload
+        const { uploadUrl, authorizationToken } = await getUploadUrl(process.env.B2_BUCKET_ID);
+
+        const headers = {
+          Authorization: authorizationToken, // Use the current auth token
+          "X-Bz-File-Name": encodeURIComponent(fileName),
+          "Content-Type": file.mimetype,
+          "X-Bz-Content-Sha1": "do_not_verify",
+        };
+        
+        const response = await axios.post(uploadUrl, file.buffer, { headers });
+        return `https://f002.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${fileName}`;
+      } catch (err) {
+        console.error("Backblaze upload failed:", err.response?.data || err.message);
+        throw new Error("File upload failed");
+      }
     }
 
     // Upload album cover
@@ -128,7 +134,7 @@ export const uploadAlbum = async (req, res) => {
       albumName,
       description,
       artistId: creator,
-      coverUrl: imageUrl,
+      imageUrl,
     });
 
     await newAlbum.save();
@@ -153,6 +159,7 @@ export const uploadAlbum = async (req, res) => {
         artistId: creator,
         albumId: newAlbum._id, // Link track to album
         duration: formattedDuration,
+        imageUrl,
       });
 
       return newTrack.save();
@@ -169,7 +176,8 @@ export const uploadAlbum = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Backblaze upload failed:", error.response?.data || error.message);
     res.status(500).json({ message: "Something went wrong", error: error.message });
+    throw error;
   }
 };
