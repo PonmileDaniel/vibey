@@ -1,4 +1,4 @@
-import userModel from "../models/userModel.js";
+import userModel from "../models/creatorModel.js";
 import bcrypt, { hash } from "bcryptjs"
 import jwt from "jsonwebtoken"
 import transport from "../config/nodemailer.js";

@@ -8,7 +8,11 @@ const userSchema = new mongoose.Schema({
     verifyotpExpireAt: { type: Number, default: 0 },
     isAccountVerified: { type: Boolean, default: false },
     resetOtp: { type: String, default: '' },
-    resetOtpExpiresAt: { type: Number, default: 0 }
+    resetOtpExpiresAt: { type: Number, default: 0 },
+
+    // Additional fields for creator profile
+    bio: { type: String, default:''},
+    profileImage: { type: String, default: ''}
 
 })
 

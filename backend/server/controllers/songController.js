@@ -1,6 +1,7 @@
 import { getUploadUrl } from "../config/backblaze.js";
 import Track from "../models/trackModel.js";
 import Album from "../models/albumModel.js";
+// import userModel from "../models/userModel.js";
 import dotenv from "dotenv";
 import axios from "axios";
 import { parseBuffer } from "music-metadata";
@@ -141,6 +142,7 @@ export const uploadAlbum = async (req, res) => {
 
     // Process and upload each track
     const trackPromises = audioFiles.map(async (audioFile) => {
+
       const audioFileName = `songs/${Date.now()}_${audioFile.originalname}`;
 
       // Extract metadata (duration)
@@ -181,3 +183,37 @@ export const uploadAlbum = async (req, res) => {
     throw error;
   }
 };
+
+
+
+
+
+//Get all tracks(Singles)
+export const getAllTracks = async (req, res) => {
+  try {
+    const tracks = await Track.find().populate('albumId', 'albumName').populate('artistId', 'name').exec();
+    return res.status(200).json({success: true, tracks,
+    });
+    
+  } catch (error) {
+    console.error("Error fetching tracks:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+  }
+}
+
+
+// Fetch all albums
+export const getAllAlbums = async (req, res) => {
+  try {
+    const albums = await Album.find().populate('artistId', 'name').exec();
+
+    return res.status(200).json({success: true, albums,
+    });
+  } catch (error) {
+    console.log("Error Fetching albums");
+    res.status(500).json({success: false, message: error.message})
+  };
+}
