@@ -191,7 +191,8 @@ export const uploadAlbum = async (req, res) => {
 //Get all tracks(Singles)
 export const getAllTracks = async (req, res) => {
   try {
-    const tracks = await Track.find().populate('albumId', 'albumName').populate('artistId', 'name').exec();
+    const artistId = req.user._id
+    const tracks = await Track.find({ artistId }).populate('albumId', 'albumName').populate('artistId', 'name').exec();
     return res.status(200).json({success: true, tracks,
     });
     
@@ -208,7 +209,9 @@ export const getAllTracks = async (req, res) => {
 // Fetch all albums
 export const getAllAlbums = async (req, res) => {
   try {
-    const albums = await Album.find().populate('artistId', 'name').exec();
+    const artistId = req.user._id
+
+    const albums = await Album.find({ artistId }).populate('artistId', 'name').exec();
 
     return res.status(200).json({success: true, albums,
     });

@@ -1,13 +1,47 @@
-import { getUploadUrl } from "../config/backblaze.js";
+//import { getUploadUrl } from "../config/backblaze.js";
 import Track from "../models/trackModel.js";
 import Album from "../models/albumModel.js";
 import userModel from "../models/creatorModel.js";
+import { uploadToB2 } from "../config/backblazeProfile.js";
 
 
+
+export const uploadProfile = async (req, res) =>{
+    try {
+        const { bio } = req.body
+        const file = req.file;
+
+        let imageUrl = null;
+
+        if (file) {
+            // If a new profile image is uploaded, upload to B2
+            imageUrl = await uploadToB2(file.buffer, file.originalname, "profile");
+          } else {
+            return res.status(400).json({ success: false, message: "No file uploaded" });
+        }
+
+        const updateCreator = await userModel.findByIdAndUpdate(
+            req.user._id,
+            {
+                bio, 
+                profileImage: imageUrl || req.user.profileImage,
+            },
+            { new: true }
+        );
+
+        return res.json({
+            success: true,
+            message: "Profile setup successfully completed",
+            creator: updateCreator
+        })
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message})
+    }
+}
 
 
 export const getCreatorProfile = async (req, res) => {
-    const { creatorId } = req.params;
+    const creatorId = req.user._id;
 
     try {
         const creator = await userModel.findById(creatorId).select('-password -verifyotp -resetOtp')
@@ -41,7 +75,6 @@ export const getCreatorProfile = async (req, res) => {
 
 
 // Update Profile
-
 export const updateCreatorProfile = async (req, res) => {
     const userId = req.user._id;
     const { bio, profileImage } = req.body;

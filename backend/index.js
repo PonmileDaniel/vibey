@@ -5,6 +5,7 @@ import connectDB from "./server/config/mongobd.js";
 import 'dotenv/config'
 import authRouter from "./server/routes/authroute.js";
 import songRoute from "./server/routes/songRoute.js";
+import listenerRouter from "./server/routes/listenerRoute.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get('/', (req,res) => {
 
 app.use('/api/auth', authRouter)
 app.use('/api/song', songRoute)
+app.use('/api/listener', listenerRouter)
 
 app.listen(PORT, () => {
     console.log(`Port running at ${PORT} `)
