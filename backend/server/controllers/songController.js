@@ -93,10 +93,11 @@ export const uploadTrack = async (req, res) => {
 
 export const uploadAlbum = async (req, res) => {
   try {
-    const { albumName, description } = req.body;
+    const { albumName, description, trackTitles } = req.body;
     const audioFiles = req.files["tracks"]; // An array of tracks
     const imageFile = req.files['image'][0];
     const creator = req.user._id;
+    const parsedTitles = JSON.parse(trackTitles);
 
     if (!audioFiles || audioFiles.length === 0) {
       return res.status(400).json({ message: "No tracks provided" });
@@ -155,7 +156,7 @@ export const uploadAlbum = async (req, res) => {
 
       // Save track in DB
       const newTrack = new Track({
-        trackName: audioFile.originalname.split(".")[0], // Use filename as track title if not provided
+        trackName: parsedTitles[index] || audioFile.originalname.split(".")[0], // Use filename as track title if not provided
         description,
         audioUrl,
         artistId: creator,
@@ -191,6 +192,22 @@ export const uploadAlbum = async (req, res) => {
 //Get all tracks(Singles)
 export const getAllTracks = async (req, res) => {
   try {
+    const tracks = await Track.find().populate('albumId', 'albumName').populate('artistId', 'name').exec();
+    return res.status(200).json({success: true, tracks,
+    });
+    
+  } catch (error) {
+    console.error("Error fetching tracks:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+  }
+}
+
+//Get Individual tracks based on the artistId 
+export const getIndiviualTracks = async (req, res) => {
+  try {
     const artistId = req.user._id
     const tracks = await Track.find({ artistId }).populate('albumId', 'albumName').populate('artistId', 'name').exec();
     return res.status(200).json({success: true, tracks,
@@ -208,6 +225,21 @@ export const getAllTracks = async (req, res) => {
 
 // Fetch all albums
 export const getAllAlbums = async (req, res) => {
+  try {
+
+    const albums = await Album.find().populate('artistId', 'name').exec();
+
+    return res.status(200).json({success: true, albums,
+    });
+  } catch (error) {
+    console.log("Error Fetching albums");
+    res.status(500).json({success: false, message: error.message})
+  };
+}
+
+
+//Get Individual Album based on the artistId 
+export const getIndiviualAlbums = async (req, res) => {
   try {
     const artistId = req.user._id
 
