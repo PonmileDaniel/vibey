@@ -1,7 +1,6 @@
 import { getUploadUrl } from "../config/backblaze.js";
 import Track from "../models/trackModel.js";
 import Album from "../models/albumModel.js";
-// import userModel from "../models/userModel.js";
 import dotenv from "dotenv";
 import axios from "axios";
 import { parseBuffer } from "music-metadata";
@@ -142,7 +141,7 @@ export const uploadAlbum = async (req, res) => {
     await newAlbum.save();
 
     // Process and upload each track
-    const trackPromises = audioFiles.map(async (audioFile) => {
+    const trackPromises = audioFiles.map(async (audioFile, index) => {
 
       const audioFileName = `songs/${Date.now()}_${audioFile.originalname}`;
 
@@ -220,6 +219,7 @@ export const getIndiviualTracks = async (req, res) => {
             message: error.message,
         });
   }
+  return res.status(200).json({ success: true, tracks });
 }
 
 

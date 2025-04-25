@@ -1,7 +1,8 @@
 import userModel from "../models/creatorModel.js";
 import bcrypt, { hash } from "bcryptjs"
-import jwt from "jsonwebtoken"
 import transport from "../config/nodemailer.js";
+import jwt from 'jsonwebtoken';
+
 
 
 export const register = async (req, res ) => {
@@ -36,13 +37,20 @@ export const register = async (req, res ) => {
         })
 
         // Sending a Welcome Email
-        const mailOption = {
-            from: process.env.SENDER_EMAIL,
-            to: email,
-            subject: 'Welcome to Vibeyy',
-            text: 'Dear Vibe creator, Welcome onboard your account has been Created.'
-        }
-        await transport.sendMail(mailOption)
+        // const mailOption = {
+        //     from: process.env.SENDER_EMAIL,
+        //     to: email,
+        //     subject: 'Welcome to Vibeyy',
+        //     text: 'Dear Vibe creator, Welcome onboard your account has been Created.'
+        // }
+
+        // try {
+        //     await transport.sendMail(mailOption)
+        //   } catch (err) {
+        //     console.error('Mail send failed:', err.message)
+        //   }
+          
+        // // await transport.sendMail(mailOption)
 
         return res.json({success: true})
 
