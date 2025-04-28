@@ -1,0 +1,298 @@
+.cu-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    font-family: Arial, sans-serif;
+    color: white;
+    overflow: auto;
+    padding: 40px 0;
+}
+
+.cu-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.cu-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.cu-title {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.cu-subtitle {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cu-upload-container {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.cu-toggle-container {
+    display: flex;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.cu-toggle-button {
+    flex: 1;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.cu-toggle-button.active {
+    background: rgba(255, 255, 255, 0.2);
+    font-weight: bold;
+}
+
+.cu-form-group {
+    margin-bottom: 20px;
+}
+
+.cu-label {
+    display: block;
+    color: white;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.cu-input::placeholder, .cu-textarea::placeholder {
+    color: whitesmoke;
+}
+
+.cu-input,
+.cu-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 10px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.cu-welcome {
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+    color: #fff;
+}
+
+.cu-textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.cu-file-upload {
+    border: 2px dashed rgba(255, 255, 255, 0.5);
+    border-radius: 10px;
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.cu-file-upload-text {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cu-file-selected {
+    margin-top: 10px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cu-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.cu-track-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.cu-track-number {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.cu-remove-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.cu-add-track {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    border-radius: 10px;
+    padding: 12px;
+    width: 100%;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 15px;
+    margin-bottom: 30px;
+}
+
+.cu-submit-button {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .cu-container {
+        padding: 0 15px;
+    }
+
+    .cu-title {
+        font-size: 28px;
+    }
+
+    .cu-subtitle {
+        font-size: 14px;
+    }
+
+    .cu-upload-container {
+        padding: 20px;
+    }
+
+    .cu-toggle-button {
+        font-size: 14px;
+        padding: 12px;
+    }
+
+    .cu-form-group {
+        margin-bottom: 15px;
+    }
+
+    .cu-input,
+    .cu-textarea {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .cu-file-upload {
+        padding: 20px 15px;
+    }
+
+    .cu-file-upload-text {
+        font-size: 14px;
+    }
+
+    .cu-submit-button {
+        font-size: 14px;
+        padding: 12px;
+    }
+
+    .cu-track-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .cu-track-number {
+        font-size: 16px;
+    }
+
+    .cu-remove-button {
+        font-size: 14px;
+        padding: 5px 8px;
+    }
+
+    .cu-add-track {
+        font-size: 14px;
+        padding: 10px;
+    }
+}
+
+/* Extra Small Mobile (Phones in portrait) */
+@media (max-width: 480px) {
+    .cu-title {
+        font-size: 24px;
+    }
+
+    .cu-subtitle {
+        font-size: 12px;
+    }
+
+    .cu-toggle-container {
+        flex-direction: column;
+    }
+
+    .cu-toggle-button {
+        padding: 10px;
+        font-size: 12px;
+    }
+
+    .cu-file-upload {
+        padding: 15px 10px;
+    }
+
+    .cu-input,
+    .cu-textarea {
+        font-size: 12px;
+        padding: 8px;
+    }
+
+    .cu-submit-button {
+        font-size: 12px;
+        padding: 10px;
+    }
+
+    cu-board li {
+        padding: 10px;
+        font-size: 14px;
+        /* list-style: none; */
+    }
+    
+    .cu-board audio {
+        width: 100%;
+    }
+
+    .cu-my-tracks ul{
+        list-style: none;
+        padding: 0;
+    }
+      
+}
+
+
