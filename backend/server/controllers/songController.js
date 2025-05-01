@@ -211,7 +211,7 @@ export const getIndiviualTracks = async (req, res) => {
         signedAudioUrl = await getSignedUrl(relativeAudioPath);
 
         if (signedAudioUrl) {
-          await redisClient.setEx(audioCacheUrl, 3600, signedAudioUrl); // Cache for 1 hour
+          await redisClient.setEx(audioCacheUrl, 43200, signedAudioUrl); // Cache for 1 hour
         }
       }
       return {
@@ -269,8 +269,8 @@ export const getIndiviualAlbums = async (req, res) => {
           signedImageUrl = await getSignedUrl(relativeImagePath);
 
           if (signedImageUrl) {
-            // Cache it in Redis with a TTL of 1hr 
-            await redisClient.setEx(redisKey, 3600, signedImageUrl);
+            // Cache it in Redis with a TTL of 12hr 
+            await redisClient.setEx(redisKey, 43200, signedImageUrl);
           } else {
             console.warn(`Failed to sign album image for: ${relativeImagePath}`);
           }
@@ -297,6 +297,7 @@ export const getIndiviualAlbums = async (req, res) => {
     });
   }
 };
+
 
 
 export const getAllTracks = async (req, res) => {
@@ -335,6 +336,7 @@ export const getAllTracks = async (req, res) => {
     });
   }
 };
+
 
 
 // Fetch all albums

@@ -1,7 +1,7 @@
 import axios from "axios";
 import dotenv from "dotenv";
-
-import crypto from "crypto"
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl as getAwsSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 dotenv.config(); // Load .env variables
 
@@ -49,103 +49,9 @@ export const getUploadUrl = async (bucketId) => {
       throw error;
     }
   };
-  
 
 
-// // Signed Url Generation
-
-// export const getSignedUrl = async (fileName, validDurationInSeconds = 270) => {
-//   try {
-//     const { apiUrl, authToken, downloadUrl } = await b2();
-
-//     // Your  bucket ID and file name are required
-//     const bucketId = process.env.B2_BUCKET_ID;
-
-//     // Make the API call to get a signed URL for the file
-//     const response = await axios.post(
-//       `${apiUrl}/b2api/v2/b2_get_download_url`,
-//       {
-//         bucketId,
-//         fileName,
-//         expiresIn: validDurationInSeconds, // Specify expiration in seconds
-//       },
-//       {
-//         headers: {
-//           Authorization: authToken,
-//         },
-//       }
-//     );
-
-//     // Get the signedm Urk from the response data
-//     const signedUrl = `${downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${fileName}?Authorization=${response.data.authorizationToken}`;
-    
-//     return signedUrl;
-//   } catch (error) {
-//     console.error("Failed to generate signed URL:", error.response?.data || error.message);
-//     throw error;    
-//   }
-// };
-
-
-
-// export const getSignedUrl = (fileName, validDurationInSeconds = 270) => {
-//   try {
-//     const downloadUrl = process.env.B2_DOWNLOAD_URL; // e.g. https://f123.backblazeb2.com
-//     const bucketName = process.env.B2_BUCKET_NAME;
-//     const keyId = process.env.B2_KEY_ID; // Application Key ID
-//     const appKey = process.env.B2_APPLICATION_KEY; // Application Key Secret
-
-//     if (!downloadUrl || !bucketName || !keyId || !appKey) {
-//       throw new Error("Missing B2 configuration environment variables");
-//     }
-
-//     const expires = Math.floor(Date.now() / 1000) + validDurationInSeconds;
-//     const path = `/file/${bucketName}/${fileName}`;
-//     const dataToSign = `${path}\n${expires}`;
-//     const signature = crypto.createHmac('sha1', appKey).update(dataToSign).digest('hex');
-
-//     const signedUrl = `${downloadUrl}${path}?Authorization=${keyId}:${signature}:${expires}`;
-//     return signedUrl;
-//   } catch (error) {
-//     console.error("Failed to generate signed URL:", error.message);
-//     throw error;
-//   }
-// };
-
-
-// export const getSignedUrl = (fileName, validDurationInSeconds = 500) => {
-//   try {
-//     const downloadUrl = process.env.B2_DOWNLOAD_URL;
-//     const bucketName = process.env.B2_BUCKET_NAME;
-//     const keyId = process.env.B2_KEY_ID;
-//     const appKey = process.env.B2_APPLICATION_KEY;
-
-//     if (!downloadUrl || !bucketName || !keyId || !appKey) {
-//       throw new Error("Missing B2 configuration environment variables");
-//     }
-
-//     const expires = Math.floor(Date.now() / 1000) + validDurationInSeconds;
-//     const path = `/file/${bucketName}/${fileName}`;
-//     const dataToSign = `${path}\n${expires}`;
-//     const signature = crypto.createHmac('sha1', appKey).update(dataToSign).digest('hex');
-
-//     const signedUrl = `${downloadUrl}${path}?Authorization=${keyId}:${signature}:${expires}`;
-//     return signedUrl;
-//   } catch (error) {
-//     console.error("Failed to generate signed URL:", error.message);
-//     throw error;
-//   }
-// };
-
-
-
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl as getAwsSignedUrl } from "@aws-sdk/s3-request-presigner";
-// Remove the 'crypto' import if no longer needed
-
-// --- Keep your existing imports and setup ---
-
-export const getSignedUrl = async (fileName, validDurationInSeconds = 3600) => { // Increased default duration
+export const getSignedUrl = async (fileName, validDurationInSeconds = 43200) => { // Increased default duration
   try {
     const endpoint = process.env.B2_S3_ENDPOINT;
     const region = process.env.B2_S3_REGION;
@@ -183,8 +89,6 @@ export const getSignedUrl = async (fileName, validDurationInSeconds = 3600) => {
 
   } catch (error) {
     console.error("Failed to generate AWS SDK signed URL for B2:", error);
-    // It's often better not to throw here in production unless you handle it upstream
-    // Return null or a specific error indicator might be better for the map function
     return null; // Or throw error; depending on how you want to handle failures
   }
 };
