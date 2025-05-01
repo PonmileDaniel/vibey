@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './CreatorUpload.css'; // Import component-specific CSS
 import axios from 'axios'; // For making API requests
 import toast from 'react-hot-toast'; // For displaying error/success notifications
-import AlbumTrackFields from './AlbumTrackFields'; // (Used in UploadForm)
+import AlbumTrackFields from './AlbumTrackFields'; // (Used in UploadForm so do not remove it ooooooo)
 import UploadForm from './UploadForm'; // Reusable upload form for track or album
 
 const CreatorUpload = () => {
