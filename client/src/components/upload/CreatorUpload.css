@@ -178,6 +178,37 @@
     transition: all 0.3s ease;
 }
 
+
+.album-cover {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-right: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .album-item {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255,255,255,0.1);
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    transition: background 0.2s;
+  }
+  .album-item:hover {
+    background-color: rgba(255,255,255,0.15);
+  }
+  .album-info h4 {
+    margin: 0;
+    font-size: 20px;
+  }
+  .album-info p {
+    margin: 4px 0;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .cu-container {
@@ -242,6 +273,25 @@
         font-size: 14px;
         padding: 10px;
     }
+
+    .album-item {
+        flex-direction: row;
+        padding: 12px;
+      }
+    
+      .album-cover {
+        width: 80px;
+        height: 80px;
+        margin-right: 12px;
+      }
+    
+      .album-info h4 {
+        font-size: 18px;
+      }
+    
+      .album-info p {
+        font-size: 14px;
+      }
 }
 
 /* Extra Small Mobile (Phones in portrait) */
@@ -292,6 +342,24 @@
         list-style: none;
         padding: 0;
     }
+    .album-item {
+        flex-direction: row;
+        padding: 10px;
+      }
+    
+      .album-cover {
+        width: 70px;
+        height: 70px;
+        margin-right: 10px;
+      }
+    
+      .album-info h4 {
+        font-size: 16px;
+      }
+    
+      .album-info p {
+        font-size: 13px;
+      }
       
 }
 

@@ -1,51 +1,63 @@
-import axios from "axios";
-import dotenv from "dotenv";
+import axios from 'axios';
+import dotenv from 'dotenv';
+dotenv.config();
 
-dotenv.config(); // Load .env variables
+const B2_AUTH_URL = 'https://api.backblazeb2.com/b2api/v2/b2_authorize_account';
 
-const keyId = process.env.B2_KEY_ID;
-const appKey = process.env.B2_APPLICATION_KEY;
-const apiUrl = process.env.BACKBLAZE_URL
-
-// Function to authorize with B2
-export const authorizeB2 = async () => {
+async function authorizeB2() {
   try {
-    const response = await axios.get(`${apiUrl}/b2_authorize_account`, {
-      auth: { username: keyId, password: appKey },
+    const keyId = process.env.B2_KEY_ID;
+    const appKey = process.env.B2_APPLICATION_KEY;
+
+    if (!keyId || !appKey) {
+      throw new Error('Missing B2 credentials');
+    }
+
+    const auth = Buffer.from(`${keyId}:${appKey}`).toString('base64');
+
+    const response = await axios.get(B2_AUTH_URL, {
+      headers: {
+        Authorization: `Basic ${auth}`
+      }
     });
 
-    return {
-      apiUrl: response.data.apiUrl,
-      authToken: response.data.authorizationToken,
-      downloadUrl: response.data.downloadUrl,
-      accountId: response.data.accountId,
-    };
+    console.log('✅ Authorized B2 successfully');
+    return response.data; // returns {authorizationToken, apiUrl, downloadUrl, accountId, ...}
   } catch (error) {
-    console.error("B2 Authorization Failed:", error.response?.data || error.message);
+    console.error('❌ Error authorizing B2:', error.response?.data || error.message);
     throw error;
   }
-};
+}
 
-// Function to get an upload URL
-export const getUploadUrl = async (bucketId) => {
+async function listBucketFiles(authData) {
   try {
-    const { apiUrl, authToken } = await authorizeB2();
+    const { authorizationToken, apiUrl } = authData;
+    const bucketId = process.env.B2_BUCKET_ID;
+
     const response = await axios.post(
-      `${apiUrl}/b2_get_upload_url`,
-      { bucketId },
+      `${apiUrl}/b2api/v2/b2_list_file_names`,
+      {
+        bucketId,
+        maxFileCount: 10, // or whatever
+      },
       {
         headers: {
-          Authorization: authToken,
-        },
+          Authorization: authorizationToken
+        }
       }
     );
 
-    return response.data; // Contains upload URL and auth token for file upload
+    console.log('✅ Files listed successfully');
+    console.log(response.data.files);
   } catch (error) {
-    console.error("Failed to get upload URL:", error.response?.data || error.message);
+    console.error('❌ Error listing files:', error.response?.data || error.message);
     throw error;
   }
-};
+}
 
+async function main() {
+  const authData = await authorizeB2();
+  await listBucketFiles(authData);
+}
 
-
+main();

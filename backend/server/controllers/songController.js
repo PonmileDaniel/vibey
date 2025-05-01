@@ -1,9 +1,10 @@
-import { getUploadUrl } from "../config/backblaze.js";
+import { getUploadUrl, getSignedUrl } from "../config/backblaze.js";
 import Track from "../models/trackModel.js";
 import Album from "../models/albumModel.js";
 import dotenv from "dotenv";
 import axios from "axios";
 import { parseBuffer } from "music-metadata";
+import redisClient from "../config/redisClient.js";
 
 dotenv.config();
 
@@ -67,6 +68,7 @@ export const uploadTrack = async (req, res) => {
     const durationInSeconds = Math.floor(metadata.format.duration || 0);
     const formattedDuration = `${Math.floor(durationInSeconds / 60)}:${String(durationInSeconds % 60).padStart(2, "0")}`;
 
+
     // Save this track into Mongodb 
     const newSong = new Track({
       trackName: title,
@@ -84,9 +86,6 @@ export const uploadTrack = async (req, res) => {
     res.status(500).json({ message: "Something went wrong", error: error.message });
   }
 };
-
-
-
 
 
 
@@ -186,41 +185,156 @@ export const uploadAlbum = async (req, res) => {
 
 
 
+// Update getIndiviualTracks to be async and handle await ---
 
-
-//Get all tracks(Singles)
-export const getAllTracks = async (req, res) => {
-  try {
-    const tracks = await Track.find().populate('albumId', 'albumName').populate('artistId', 'name').exec();
-    return res.status(200).json({success: true, tracks,
-    });
-    
-  } catch (error) {
-    console.error("Error fetching tracks:", error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-  }
-}
-
-//Get Individual tracks based on the artistId 
 export const getIndiviualTracks = async (req, res) => {
   try {
-    const artistId = req.user._id
-    const tracks = await Track.find({ artistId }).populate('albumId', 'albumName').populate('artistId', 'name').exec();
-    return res.status(200).json({success: true, tracks,
+    const artistId = req.user._id;
+    const tracks = await Track.find({ artistId })
+      .populate('albumId', 'albumName')
+      .populate('artistId', 'name')
+      .exec();
+
+    // Use Promise.all to handle multiple async calls efficiently
+    const signedTracksPromises = tracks.map(async (track) => {
+      const cleanAudioUrl = track.audioUrl.split('?')[0];
+      // Ensure the regex correctly isolates the file path including folders
+      // Example: if URL is https://f004.backblazeb2.com/file/my-music-bucket/artist1/song.mp3
+      // The relative path should be 'artist1/song.mp3'
+      const relativeAudioPath = cleanAudioUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
+      const audioCacheUrl = `signedUrl:audio:${relativeAudioPath}`;
+
+
+      //Check Redis for cached audio Url
+      let signedAudioUrl = await redisClient.get(audioCacheUrl); // Await the promis
+      if(!signedAudioUrl){
+        signedAudioUrl = await getSignedUrl(relativeAudioPath);
+
+        if (signedAudioUrl) {
+          await redisClient.setEx(audioCacheUrl, 3600, signedAudioUrl); // Cache for 1 hour
+        }
+      }
+      return {
+        ...track.toObject(), // Use toObject() if track is a Mongoose document
+        audioUrl: signedAudioUrl, // Use the generated signed URL
+        // imageUrl: signedImageUrl, // Use the generated signed URL
+      };
     });
-    
+
+    // Wait for all signed URLs to be generated
+    const signedTracks = await Promise.all(signedTracksPromises);
+
+     // Filter out tracks where URL generation failed, if necessary
+     const validSignedTracks = signedTracks.filter(track => track.audioUrl !== null);
+
+
+    return res.status(200).json({
+      success: true,
+      tracks: validSignedTracks, // Send only tracks with valid URLs
+    });
+
   } catch (error) {
-    console.error("Error fetching tracks:", error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+    console.error('Error fetching tracks:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error fetching tracks", // Provide a default message
+    });
   }
-  return res.status(200).json({ success: true, tracks });
-}
+};
+
+
+
+//Get Individual Album based on the artistId 
+export const getIndiviualAlbums = async (req, res) => {
+  try {
+    const artistId = req.user._id;
+
+    const albums = await Album.find({ artistId })
+      .populate('artistId', 'name')
+      .exec();
+
+    const signedAlbumsPromises = albums.map(async (album) => {
+      let signedImageUrl = null;
+
+      if (album.imageUrl) {
+        const cleanImageUrl = album.imageUrl.split('?')[0];
+        const relativeImagePath = cleanImageUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
+        const redisKey = `signed:album-image:${relativeImagePath}`;
+
+        // Try fetching signed URL from Redis
+        signedImageUrl = await redisClient.get(redisKey);
+
+        if (!signedImageUrl) {
+          // Generate a new signed URL
+          signedImageUrl = await getSignedUrl(relativeImagePath);
+
+          if (signedImageUrl) {
+            // Cache it in Redis with a TTL of 1hr 
+            await redisClient.setEx(redisKey, 3600, signedImageUrl);
+          } else {
+            console.warn(`Failed to sign album image for: ${relativeImagePath}`);
+          }
+        }
+
+        album.imageUrl = signedImageUrl;
+      }
+
+      return album;
+    });
+
+    const signedAlbums = await Promise.all(signedAlbumsPromises);
+
+    return res.status(200).json({
+      success: true,
+      albums: signedAlbums,
+    });
+
+  } catch (error) {
+    console.error("Error Fetching albums:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error fetching albums"
+    });
+  }
+};
+
+
+export const getAllTracks = async (req, res) => {
+  try {
+    // Fetch all tracks and populate album and artist info
+    const tracks = await Track.find()
+      .populate('albumId', 'albumName')
+      .populate('artistId', 'name')
+      .exec();
+
+    // Loop through the tracks to generate signed URLs
+    for (let track of tracks) {
+      // Get the signed URL for audio file
+      const signedAudioUrl = getSignedUrl(track.audioUrl);
+      console.log('Signed audio URL:', signedAudioUrl); // Logging for debugging
+      track.audioUrl = signedAudioUrl; // Replace with signed URL
+
+      // If there is an image URL, generate the signed URL for the image
+      if (track.imageUrl) {
+        const signedImageUrl = getSignedUrl(track.imageUrl); // Generate signed URL for image
+        track.imageUrl = signedImageUrl; // Replace with signed URL
+      }
+    }
+
+    // Send the tracks as the response
+    return res.status(200).json({
+      success: true,
+      tracks,
+    });
+
+  } catch (error) {
+    console.error('Error fetching tracks:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 
 // Fetch all albums
@@ -229,21 +343,13 @@ export const getAllAlbums = async (req, res) => {
 
     const albums = await Album.find().populate('artistId', 'name').exec();
 
-    return res.status(200).json({success: true, albums,
-    });
-  } catch (error) {
-    console.log("Error Fetching albums");
-    res.status(500).json({success: false, message: error.message})
-  };
-}
-
-
-//Get Individual Album based on the artistId 
-export const getIndiviualAlbums = async (req, res) => {
-  try {
-    const artistId = req.user._id
-
-    const albums = await Album.find({ artistId }).populate('artistId', 'name').exec();
+    // Generate signed URLS for each album image
+    for (let album of albums) {
+      if (album.imageUrl) {
+        const signedImageUrl = getSignedUrl(album.imageUrl);
+        album.imageUrl = signedImageUrl;
+      }
+    }
 
     return res.status(200).json({success: true, albums,
     });
