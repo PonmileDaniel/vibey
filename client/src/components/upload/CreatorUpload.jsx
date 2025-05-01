@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './CreatorUpload.css'; // Import component-specific CSS
 import axios from 'axios'; // For making API requests
 import toast from 'react-hot-toast'; // For displaying error/success notifications
-import AlbumTrackFields from './AlbumTrackFields'; // (Used in UploadForm so do not remove it ooooooo)
+import AlbumTrackFields from './AlbumTrackFields'; // (Used in UploadForm so do not remove it )
 import UploadForm from './UploadForm'; // Reusable upload form for track or album
+import { Trash2 } from 'lucide-react';
 
 const CreatorUpload = () => {
   // State to control the current selected upload type/view
@@ -87,6 +88,9 @@ const CreatorUpload = () => {
                             <source src={track.audioUrl} type="audio/mp3" />
                             Your browser does not support the audio element.
                           </audio>
+                          <button className="delete-button">
+                            <Trash2 size={20} color='red'/>
+                          </button>
                         </li>
                       ))
                     ) : (

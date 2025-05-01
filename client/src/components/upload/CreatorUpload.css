@@ -208,6 +208,17 @@
     color: rgba(255, 255, 255, 0.85);
   }
   
+  .delete-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    transform: translateY(-15px);
+  }
+  .delete-button:hover {
+    color: #ff6347; /* Hover color for the bin icon */
+  }
+  
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
@@ -360,6 +371,7 @@
       .album-info p {
         font-size: 13px;
       }
+
       
 }
 
