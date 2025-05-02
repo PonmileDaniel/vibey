@@ -4,7 +4,9 @@ import axios from 'axios'; // For making API requests
 import toast from 'react-hot-toast'; // For displaying error/success notifications
 import AlbumTrackFields from './AlbumTrackFields'; // (Used in UploadForm so do not remove it )
 import UploadForm from './UploadForm'; // Reusable upload form for track or album
-import { Trash2 } from 'lucide-react';
+import { Trash2, X, RefreshCw } from 'lucide-react';
+
+
 
 const CreatorUpload = () => {
   // State to control the current selected upload type/view
@@ -14,9 +16,40 @@ const CreatorUpload = () => {
   const [myTracks, setMyTracks] = useState([]);
   const [myAlbums, setMyAlbums] = useState([]);
 
-  // Fetch creator's uploaded tracks and albums when component mounts
-  useEffect(() => {
-    const fetchUploadedData = async () => {
+  // State for loading indicator
+  const [isLoading, setIsLoading] = useState(false);
+
+  // State for delete confirmation modal
+  const [deleteTrackIds, setDeleteTrackIds] = useState([]);
+
+
+  const handleDeleteTrack = async (trackId) => {
+    try {
+      // Add this track to the deleting state
+      setDeleteTrackIds(prev => [...prev, trackId]);
+
+
+      await axios.delete(`http://localhost:5001/api/song/delete-track/${trackId}`, {
+        withCredentials: true,
+      });
+
+      // Remove the track from state to update UI immediately
+      setMyTracks(prev => prev.filter(track => track._id !== trackId));
+
+      toast.success('Track deleted Successfully')
+      setMyTracks(prev => prev.filter(track => track._id !== trackId))
+    } catch (error) {
+      toast.error('Failed to delete track');
+      console.error(error);
+    } finally{
+      // Remove this track from the deleting state
+      setDeleteTrackIds(prev => prev.filter(id => id !== trackId));
+    }
+  };
+
+  //Function to fetch data with loading state
+  const fetchUploadedData = async () => {
+      setIsLoading(true)
       try {
         const config = {
           withCredentials: true,
@@ -30,12 +63,19 @@ const CreatorUpload = () => {
         // Fetch uploaded albums
         const albumRes = await axios.get('http://localhost:5001/api/song/get-artist-album', config);
         setMyAlbums(albumRes.data.albums || []);
+
+        toast.success('Content refreshed')
       } catch (error) {
         // Notify user if API call fails
         toast.error('Failed to load your tracks and albums');
+      } finally{
+        setIsLoading(false);
       }
     };
 
+
+  // Fetch creator's uploaded tracks and albums when component mounts
+  useEffect(() => {
     fetchUploadedData();
   }, []);
 
@@ -84,13 +124,23 @@ const CreatorUpload = () => {
                       myTracks.map((track) => (
                         <li key={track._id}>
                           <div>{track.trackName}</div>
+                          <div className='cu-track-control'>
                           <audio controls preload="auto">
                             <source src={track.audioUrl} type="audio/mp3" />
                             Your browser does not support the audio element.
                           </audio>
-                          <button className="delete-button">
-                            <Trash2 size={20} color='red'/>
+                          <button 
+                          className={`delete-button ${deleteTrackIds.includes(track._id) ? 'deleting' : ''}`} 
+                          onClick={() => handleDeleteTrack(track._id, track.trackName)}
+                          disabled={deleteTrackIds.includes(track._id)}
+                          >
+                            {deleteTrackIds.includes(track._id) ? (
+                                  <RefreshCw size={20} className="rotating" />
+                                ) : (
+                                  <Trash2 size={20} color="red" />
+                                )}
                           </button>
+                          </div>
                         </li>
                       ))
                     ) : (
