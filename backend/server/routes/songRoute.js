@@ -1,5 +1,5 @@
 import express from "express";
-import { uploadTrack,  uploadAlbum, getAllAlbums, getAllTracks, getIndiviualAlbums, getIndiviualTracks} from "../controllers/songController.js";
+import { uploadTrack,  uploadAlbum, getAllAlbums, getAllTracks, getIndiviualAlbums, getIndiviualTracks, deleteTracks} from "../controllers/songController.js";
 import {upload} from "../multer/multer.js";
 import userAuth from "../middleware/userAuth.js";
 
@@ -19,6 +19,7 @@ songRoute.get('/get-artist-track', userAuth, getIndiviualTracks)
 
 songRoute.get('/get-tracks', userAuth, getAllTracks);
 songRoute.get('/get-albums', userAuth, getAllAlbums);
+songRoute.delete('/delete-track/:trackId', userAuth, deleteTracks)
 
 
 export default songRoute;

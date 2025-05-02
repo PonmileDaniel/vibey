@@ -48,7 +48,58 @@ export const getUploadUrl = async (bucketId) => {
       console.error("Failed to get upload URL:", error.response?.data || error.message);
       throw error;
     }
-  };
+};
+
+
+export const deleteFile = async (fileUrl) => {
+  try {
+    // First we need to get the file info to get the fileid
+    const { apiUrl, authToken } = await b2();
+
+    // Extract the file name from the URL
+    const fileName = fileUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
+
+    // List file version to get the filedId
+    const listFilesResponse = await axios.post(
+      `${apiUrl}/b2api/v2/b2_list_file_names`,{
+        bucketId: process.env.B2_BUCKET_ID,
+        prefix: fileName,
+        maxFileCount: 1
+      },
+      {
+        headers: {
+          Authorization: authToken
+        }
+      }
+    );
+    if (listFilesResponse.data.files && listFilesResponse.data.files.length > 0) {
+      const fileId = listFilesResponse.data.files[0].fileId;
+
+      //Now delete the file using fileId
+      const deleteResponse = await axios.post(
+        `${apiUrl}/b2api/v2/b2_delete_file_version`,
+        {
+          fileName: fileName,
+          fileId: fileId
+        },
+        {
+          headers: {
+            Authorization: authToken
+          }
+        }
+      );
+      console.log('File deleted successfully:', fileName);
+      return deleteResponse.data
+    } else{
+      console.warn('File not found in B2:', fileName);
+      return null; //File does not exist
+    }
+  } catch (error) {
+    console.error('Error deleting from B2:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 
 
 export const getSignedUrl = async (fileName, validDurationInSeconds = 43200) => { // Increased default duration

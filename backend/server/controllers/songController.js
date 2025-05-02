@@ -1,10 +1,11 @@
-import { getUploadUrl, getSignedUrl } from "../config/backblaze.js";
+import { getUploadUrl, getSignedUrl, deleteFile  } from "../config/backblaze.js";
 import Track from "../models/trackModel.js";
 import Album from "../models/albumModel.js";
 import dotenv from "dotenv";
 import axios from "axios";
 import { parseBuffer } from "music-metadata";
 import redisClient from "../config/redisClient.js";
+
 
 dotenv.config();
 
@@ -298,6 +299,57 @@ export const getIndiviualAlbums = async (req, res) => {
   }
 };
 
+
+export const deleteTracks = async(req, res) => {
+  try {
+    const trackId = req.params.trackId;
+    const artistId = req.user._id;
+
+    const track = await Track.findOne({ _id: trackId, artistId });
+
+    if (!track) {
+      return res.status(404).json({ success: false, message: 'Track not found or unauthorized'});
+    }
+
+    try {
+      await deleteFile(track.audioUrl);
+      console.log('Audio file deleted successfully')
+
+      if (track.imageUrl) {
+        await deleteFile(track.imageUrl);
+        console.log('Image file deleted successfully')
+      }
+    } catch (error) {
+      console.error('Error deleting files from Backblaze:', error)
+    }
+
+    // Delete from MongoDB
+    const deleteResult = await Track.deleteOne({ _id: trackId });
+
+    if (deleteResult.deletedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Failed to delete track from database'});
+    }
+
+    // Clear any cached signed URLs from Redis
+    try {
+      const audioPath = track.audioUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
+      const imagePath = track.imageUrl ? track.imageUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '') : null;
+
+      await redisClient.del(`signedUrl:audio:${audioPath}`);
+
+      if (imagePath) {
+        await redisClient.del(`signed:album-image:${imagePath}`);
+      }
+      
+    } catch (error) {
+      console.error('Error clearing Redis cache:', error)
+    }
+    res.status(200).json({ success: true, message: 'Track successfully deleted '})
+  } catch (error) {
+    console.log('Error deleting track:', error);
+    res.status(500).json({ success: false, message: 'Server error while deleting track' });
+  }
+};
 
 
 export const getAllTracks = async (req, res) => {
