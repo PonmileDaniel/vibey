@@ -352,39 +352,114 @@ export const deleteTracks = async(req, res) => {
 };
 
 
+// export const getAllTracks = async (req, res) => {
+//   try {
+//     // Fetch all tracks and populate album and artist info
+//     const tracks = await Track.find()
+//       .populate('albumId', 'albumName')
+//       .populate('artistId', 'name')
+//       .exec();
+
+//     // Use Promise.all to handle multiple calls effectively
+//     const signedAllTracksPromises = tracks.map(async(track) => {
+//       const cleanAudioUrl = track.audioUrl.split('?')[0];
+//       // Extract the relative path (e.g., 'artist1/song.mp3')
+//       const relativeAudioPath = cleanAudioUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
+//       const audioCacheUrl = `signedUrl:audio:${relativeAudioPath}`;
+
+
+//     })
+
+//     // Loop through the tracks to generate signed URLs
+//     for (let track of tracks) {
+//       // Get the signed URL for audio file
+//       const signedAudioUrl = getSignedUrl(track.audioUrl);
+//       console.log('Signed audio URL:', signedAudioUrl); // Logging for debugging
+//       track.audioUrl = signedAudioUrl; // Replace with signed URL
+
+//       // If there is an image URL, generate the signed URL for the image
+//       if (track.imageUrl) {
+//         const signedImageUrl = getSignedUrl(track.imageUrl); // Generate signed URL for image
+//         track.imageUrl = signedImageUrl; // Replace with signed URL
+//       }
+//     }
+
+//     // Send the tracks as the response
+//     return res.status(200).json({
+//       success: true,
+//       tracks,
+//     });
+
+//   } catch (error) {
+//     console.error('Error fetching tracks:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
 export const getAllTracks = async (req, res) => {
   try {
-    // Fetch all tracks and populate album and artist info
+    // Fetch all tracks from the database and populate artist information.
     const tracks = await Track.find()
-      .populate('albumId', 'albumName')
-      .populate('artistId', 'name')
+      .populate('artistId', 'name') // Only load the artist's name
       .exec();
 
-    // Loop through the tracks to generate signed URLs
-    for (let track of tracks) {
-      // Get the signed URL for audio file
-      const signedAudioUrl = getSignedUrl(track.audioUrl);
-      console.log('Signed audio URL:', signedAudioUrl); // Logging for debugging
-      track.audioUrl = signedAudioUrl; // Replace with signed URL
+    // Use Promise.all to handle multiple async calls efficiently.
+    const signedTracksPromises = tracks.map(async (track) => {
+      // Extract the audio URL and generate a signed URL.
+      const cleanAudioUrl = track.audioUrl.split('?')[0];
+      const relativeAudioPath = cleanAudioUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
+      const audioCacheUrl = `signedUrl:audio:${relativeAudioPath}`;
 
-      // If there is an image URL, generate the signed URL for the image
-      if (track.imageUrl) {
-        const signedImageUrl = getSignedUrl(track.imageUrl); // Generate signed URL for image
-        track.imageUrl = signedImageUrl; // Replace with signed URL
+      let signedAudioUrl = await redisClient.get(audioCacheUrl);
+      if (!signedAudioUrl) {
+        signedAudioUrl = await getSignedUrl(relativeAudioPath);
+        if (signedAudioUrl) {
+          await redisClient.setEx(audioCacheUrl, 43200, signedAudioUrl); // Cache for 12 hours.
+        }
       }
-    }
 
-    // Send the tracks as the response
-    return res.status(200).json({
-      success: true,
-      tracks,
+      // Extract the image URL and generate a signed URL (if available).
+      let signedImageUrl = null;
+      if (track.imageUrl) {
+        const cleanImageUrl = track.imageUrl.split('?')[0];
+        const relativeImagePath = cleanImageUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
+        const imageCacheUrl = `signedUrl:image:${relativeImagePath}`;
+
+        signedImageUrl = await redisClient.get(imageCacheUrl);
+        if (!signedImageUrl) {
+          signedImageUrl = await getSignedUrl(relativeImagePath);
+          if (signedImageUrl) {
+            await redisClient.setEx(imageCacheUrl, 43200, signedImageUrl); // Cache for 12 hours.
+          }
+        }
+      }
+
+      // Return only the necessary data for the listener.
+      return {
+        trackName: track.trackName, // Name of the track
+        audioUrl: signedAudioUrl, // Signed URL for audio file
+        imageUrl: signedImageUrl, // Signed URL for image (optional)
+        artistName: track.artistId.name, // Artist's name
+        createdAt: track.createdAt, // Timestamp of when the track was uploaded
+      };
     });
 
+    // Wait for all signed URLs to be generated.
+    const signedTracks = await Promise.all(signedTracksPromises);
+
+    // Send the tracks as the response.
+    return res.status(200).json({
+      success: true,
+      tracks: signedTracks, // Send only the required track details.
+    });
   } catch (error) {
     console.error('Error fetching tracks:', error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Internal server error fetching tracks",
     });
   }
 };

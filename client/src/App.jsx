@@ -3,9 +3,11 @@ import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectRoute from './components/auth/ProtectRoute';
 import CreatorUpload from './components/upload/CreatorUpload';
+import Listener from './components/listener/listener';
 
 import CreatorSignup from "./components/creator/creatorSignup";
 import Login from "./components/login/login";
+import LandingPage from './components/LandingPage/landingpage';
 
 function App() {
   return (
@@ -34,7 +36,9 @@ function App() {
         }}
       />
       <Routes>
-        <Route path="/" element={<CreatorSignup />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/listener" element={<Listener />} />
+        <Route path="/signup" element={<CreatorSignup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/upload" element={
           <ProtectRoute>

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
 import "./landingpage.css";
 
 
 const LandingPage = () => {
+  const navigate = useNavigate();
+  
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -31,7 +34,7 @@ const LandingPage = () => {
         </div>
 
         <div className="auth-container">
-          <button className="auth-button">Continue as Listener</button>
+          <button className="auth-button" onClick={() => navigate('/listener')}>Continue as Listener</button>
 
           <div className="divider">
             <div className="divider-line"></div>
@@ -39,7 +42,7 @@ const LandingPage = () => {
             <div className="divider-line"></div>
           </div>
 
-          <button className="auth-button">Continue as Creator</button>
+          <button className="auth-button" onClick={() => navigate('/login')}>Continue as Creator</button>
         </div>
 
         <div className="footer">

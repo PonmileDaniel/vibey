@@ -17,7 +17,7 @@ uploadAlbum
 songRoute.get('/get-artist-album', userAuth, getIndiviualAlbums);
 songRoute.get('/get-artist-track', userAuth, getIndiviualTracks)
 
-songRoute.get('/get-tracks', userAuth, getAllTracks);
+songRoute.get('/get-tracks', getAllTracks);
 songRoute.get('/get-albums', userAuth, getAllAlbums);
 songRoute.delete('/delete-track/:trackId', userAuth, deleteTracks)
 
