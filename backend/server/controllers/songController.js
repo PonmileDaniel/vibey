@@ -352,52 +352,6 @@ export const deleteTracks = async(req, res) => {
 };
 
 
-// export const getAllTracks = async (req, res) => {
-//   try {
-//     // Fetch all tracks and populate album and artist info
-//     const tracks = await Track.find()
-//       .populate('albumId', 'albumName')
-//       .populate('artistId', 'name')
-//       .exec();
-
-//     // Use Promise.all to handle multiple calls effectively
-//     const signedAllTracksPromises = tracks.map(async(track) => {
-//       const cleanAudioUrl = track.audioUrl.split('?')[0];
-//       // Extract the relative path (e.g., 'artist1/song.mp3')
-//       const relativeAudioPath = cleanAudioUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
-//       const audioCacheUrl = `signedUrl:audio:${relativeAudioPath}`;
-
-
-//     })
-
-//     // Loop through the tracks to generate signed URLs
-//     for (let track of tracks) {
-//       // Get the signed URL for audio file
-//       const signedAudioUrl = getSignedUrl(track.audioUrl);
-//       console.log('Signed audio URL:', signedAudioUrl); // Logging for debugging
-//       track.audioUrl = signedAudioUrl; // Replace with signed URL
-
-//       // If there is an image URL, generate the signed URL for the image
-//       if (track.imageUrl) {
-//         const signedImageUrl = getSignedUrl(track.imageUrl); // Generate signed URL for image
-//         track.imageUrl = signedImageUrl; // Replace with signed URL
-//       }
-//     }
-
-//     // Send the tracks as the response
-//     return res.status(200).json({
-//       success: true,
-//       tracks,
-//     });
-
-//   } catch (error) {
-//     console.error('Error fetching tracks:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// };
 
 export const getAllTracks = async (req, res) => {
   try {
