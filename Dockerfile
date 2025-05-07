@@ -2,6 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install required packages
+RUN apk --no-cache add curl
+
 # Copy package.json files first for better caching
 COPY client/package*.json ./client/
 COPY backend/package*.json ./backend/
@@ -14,6 +17,15 @@ RUN cd backend && npm install
 COPY client/ ./client/
 COPY backend/ ./backend/
 
+# Set backend environment variables
+ENV NODE_ENV=production
+ENV PORT=8000
+ENV MONGODB_URI=your_mongodb_connection_string
+
+# Create a production .env file for the frontend
+RUN echo "VITE_API_URL=/api" > ./client/.env.production
+RUN echo "VITE_API_URL_SONG=/api/song" >> ./client/.env.production
+
 # Build frontend
 RUN cd client && npm run build
 
@@ -21,15 +33,15 @@ RUN cd client && npm run build
 RUN mkdir -p backend/public
 RUN cp -r client/dist/* backend/public/
 
-# Set environment to production
-ENV NODE_ENV=production
-ENV PORT=8000
-
 # Expose the port your app runs on
 EXPOSE 8000
 
-# Updated startup command with better logging
+# Add healthcheck
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8000/api || exit 1
+
+# Start with verbose output
 CMD echo "Starting application..." && \
     echo "Node version: $(node -v)" && \
     echo "Starting server on port $PORT" && \
-    node backend/index.js
+    cd backend && node index.js
