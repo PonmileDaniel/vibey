@@ -1,11 +1,11 @@
 {
     "build": {
-      "command": "cd client && npm install && npm run build && mkdir -p ../backend/public && cp -r dist/* ../backend/public/",
-      "directory": "backend"
+      "command": "npm run build",
+      "directory": "."
     },
     "start": {
-      "command": "cd backend && npm install && NODE_ENV=production npm start",
-      "directory": "backend",
+      "command": "npm start",
+      "directory": ".",
       "env": {
         "NODE_ENV": "production"
       }
