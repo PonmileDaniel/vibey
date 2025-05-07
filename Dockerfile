@@ -23,9 +23,13 @@ RUN cp -r client/dist/* backend/public/
 
 # Set environment to production
 ENV NODE_ENV=production
+ENV PORT=8000
 
 # Expose the port your app runs on
 EXPOSE 8000
 
-# Start the backend server
-CMD ["node", "backend/index.js"]
+# Updated startup command with better logging
+CMD echo "Starting application..." && \
+    echo "Node version: $(node -v)" && \
+    echo "Starting server on port $PORT" && \
+    node backend/index.js
