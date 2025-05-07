@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './listener.css';
+import './AlbumsView.css';
+import ArtistsView from './ArtistsView'; // Import the ArtistsView component
+
 import { 
   Play, 
   Pause, 
@@ -10,7 +13,8 @@ import {
   Volume2, 
   VolumeX,
   Repeat,
-  Shuffle
+  Shuffle,
+  ChevronLeft
 } from 'lucide-react';
 
 const Listener = () => {
@@ -27,14 +31,20 @@ const Listener = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
   const [isRepeating, setIsRepeating] = useState(false);
+  
+  // Album states
+  const [albums, setAlbums] = useState([]);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [albumsLoading, setAlbumsLoading] = useState(true);
+  const [albumsError, setAlbumsError] = useState(null);
 
   const navigate = useNavigate();
   const audioRef = useRef(new Audio());
 
   // Helper function for creating unique track identifiers
-  const getTrackIdentifier = (track) => {
+  const getTrackIdentifier = (track, index) => {
     // Use a combination of trackName and artistName as a unique identifier
-    return `${track.trackName}-${track.artistName}-${track.createdAt || index}`;
+    return `${track.trackName}-${track.artistName || track.artistId?.name || 'unknown'}-${track._id || track.createdAt || index}`;
   };
 
   // Volume control functions
@@ -103,49 +113,31 @@ const Listener = () => {
     }
   };
 
-  // Core track playback handler
-  // const handleTrackClick = (track) => {
-  //   // First check if we're dealing with the same track using our helper function
-  //   if (currentTrack && getTrackIdentifier(currentTrack) === getTrackIdentifier(track)) {
-  //     // For the same track, just toggle play state
-  //     setIsPlaying(!isPlaying);
-  //     return;
-  //   }
-    
-  //   // For a different track
-  //   // 1. Pause the current audio and reset it
-  //   const audio = audioRef.current;
-  //   audio.pause();
-  //   audio.currentTime = 0;
-    
-  //   // 2. Directly update the audio source without waiting for React state
-  //   audio.src = track.audioUrl;
-  //   audio.load();
-    
-  //   // 3. Update the state with the new track
-  //   setCurrentTrack({...track}); // Use spread operator to ensure we get a new object reference
-    
-  //   // 4. Force play directly after a short delay to make sure the source is loaded
-  //   setTimeout(() => {
-  //     audio.play()
-  //       .then(() => {
-  //         setIsPlaying(true);
-  //         // console.log("Successfully playing new track:", track.trackName);
-  //       })
-  //       .catch(error => {
-  //         console.error("Error playing new track:", error);
-  //         setIsPlaying(false);
-  //       });
-  //   }, 100);
-  // };
+  // Fetch all albums from API
+  const fetchAlbums = async () => {
+    try {
+      setAlbumsLoading(true);
+      const response = await axios.get('http://localhost:5001/api/song/get-albums');
+      if (response.data.success) {
+        setAlbums(response.data.albums);
+      } else {
+        setAlbumsError('Failed to fetch albums');
+      }
+    } catch (error) {
+      console.error('Error fetching albums:', error);
+      setAlbumsError('Error loading albums. Please try again later.');
+    } finally {
+      setAlbumsLoading(false);
+    }
+  };
 
-  // Helper function to check if two tracks are the sam
+  // Helper function to check if two tracks are the same
   const isSameTrack = (track1, track2) => {
     return track1 && track2 && 
       track1.trackName === track2.trackName && 
-      track1.artistName === track2.artistName;
-};
-
+      (track1.artistName === track2.artistName || 
+       track1.artistId?._id === track2.artistId?._id);
+  };
 
   const handleTrackClick = (track) => {
     // First check if we're dealing with the same track using our helper function
@@ -166,7 +158,7 @@ const Listener = () => {
       audio.pause();
       audio.currentTime = 0;
 
-      //4. Update tracl state first
+      //4. Update track state first
       setCurrentTrack({...track});
 
       //5. Only then Update the audio source
@@ -180,37 +172,34 @@ const Listener = () => {
         // Set playing state to true and then play
         setIsPlaying(true);
 
+        // Small delay to ensure React State is updated
+        setTimeout(() => {
+          const playPromise = audio.play();
 
-      // Small delay to ensure React Stae is updated
-      setTimeout(() => {
-        const playPromise = audio.play();
-
-        // Handle the play promise properly
-        if (playPromise !== undefined) {
-          playPromise
-          .then(() => {
-            console.log("Successfully playing new track:", track.trackName)
-          })
-          .catch(error => {
-            console.error("Error playing new track:", error);
-            //Only update state if thie still the current track
-            if (isSameTrack(currentTrack, track)){
-              setIsPlaying(false);
-            }
-          })
-        }
-      }, 50)
-      }
+          // Handle the play promise properly
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log("Successfully playing new track:", track.trackName);
+              })
+              .catch(error => {
+                console.error("Error playing new track:", error);
+                // Only update state if this still the current track
+                if (isSameTrack(currentTrack, track)) {
+                  setIsPlaying(false);
+                }
+              });
+          }
+        }, 50);
+      };
+      
       // Set up event listener for when audio can play
       audio.addEventListener('canplaythrough', playWhenReady);
+      
       // Force load to trigger the canplaythrough event
       audio.load();
-
-    }, 50)// Short delay to ensure pause completes
+    }, 50); // Short delay to ensure pause completes
   };
-
-  
-  // Force load 
 
   // Helper functions for UI
   const formatTime = (time) => {
@@ -225,14 +214,36 @@ const Listener = () => {
     setCurrentTime(newTime);
   };
 
-  // Initialize audio and fetch tracks
+  // Handle album selection
+  const handleAlbumClick = (album) => {
+    setSelectedAlbum(album);
+  };
+
+  // Go back from album detail view to albums list
+  const handleBackFromAlbum = () => {
+    setSelectedAlbum(null);
+  };
+
+  // Initialize and fetch data - FIXED to not stop music when changing views
   useEffect(() => {
+    // Initial data fetch when component mounts
     fetchTracks();
+  }, []); // Empty dependency array - only run once on mount
+
+  // Separate effect for fetching albums when switching to albums view
+  useEffect(() => {
+    if (activeView === 'albums') {
+      fetchAlbums();
+    }
+  }, [activeView]);
+
+  // Audio cleanup - only when component unmounts
+  useEffect(() => {
     return () => {
       audioRef.current.pause();
       audioRef.current.src = '';
     };
-  }, []);
+  }, []); // Empty dependency array means this only runs on unmount
 
   // Setup audio event listeners
   useEffect(() => {
@@ -240,7 +251,17 @@ const Listener = () => {
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleDurationChange = () => setDuration(audio.duration);
-    const handleEnded = () => setIsPlaying(false);
+    const handleEnded = () => {
+      if (isRepeating) {
+        audio.currentTime = 0;
+        audio.play();
+      } else if (isShuffling) {
+        const randomIndex = Math.floor(Math.random() * allTracks.length);
+        handleTrackClick(allTracks[randomIndex]);
+      } else {
+        playNext();
+      }
+    };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleDurationChange);
@@ -251,7 +272,7 @@ const Listener = () => {
       audio.removeEventListener('loadedmetadata', handleDurationChange);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, []);
+  }, [isRepeating, isShuffling, allTracks, playNext, handleTrackClick]);
 
   // Handle play/pause state changes
   useEffect(() => {
@@ -287,7 +308,7 @@ const Listener = () => {
               </div>
               <div className="track-info">
                 <h3 className="track-title">{track.trackName}</h3>
-                <p className="track-artist">{track.artistName}</p>
+                <p className="track-artist">{track.artistName || track.artistId?.name || 'Unknown Artist'}</p>
               </div>
               <div className="track-duration">{new Date(track.createdAt).toLocaleDateString()}</div>
             </div>
@@ -303,8 +324,8 @@ const Listener = () => {
       <div className="track-list">
         {allTracks.map((track, index) => (
           <div
-            key={getTrackIdentifier(track)}
-            className={`track-item ${currentTrack && getTrackIdentifier(currentTrack) === getTrackIdentifier(track) ? 'active' : ''}`}
+            key={getTrackIdentifier(track, index)}
+            className={`track-item ${currentTrack && getTrackIdentifier(currentTrack) === getTrackIdentifier(track, index) ? 'active' : ''}`}
             onClick={() => handleTrackClick(track)}
           >
             <div className="track-index">{index + 1}</div>
@@ -313,7 +334,7 @@ const Listener = () => {
             </div>
             <div className="track-info">
               <h3 className="track-title">{track.trackName}</h3>
-              <p className="track-artist">{track.artistName}</p>
+              <p className="track-artist">{track.artistName || track.artistId?.name || 'Unknown Artist'}</p>
             </div>
             <div className="track-duration">{new Date(track.createdAt).toLocaleDateString()}</div>
           </div>
@@ -321,6 +342,125 @@ const Listener = () => {
       </div>
     </div>
   );
+
+  // Check if a track is currently playing
+  const isTrackPlaying = (track) => {
+    return currentTrack && 
+           currentTrack.trackName === track.trackName && 
+           isPlaying;
+  };
+
+  // Render the albums grid view
+  const renderAlbumsGrid = () => (
+    <div className="albums-grid">
+      {albums.map((album) => (
+        <div 
+          key={album._id} 
+          className="album-card" 
+          onClick={() => handleAlbumClick(album)}
+        >
+          <div className="album-image-container">
+            <img 
+              src={album.imageUrl || 'https://via.placeholder.com/300'} 
+              alt={album.albumName} 
+              className="album-image"
+            />
+          </div>
+          <div className="album-info">
+            <h3 className="album-title">{album.albumName}</h3>
+            <p className="album-artist">{album.artistId?.name || 'Unknown Artist'}</p>
+            <p className="album-tracks">{album.tracks?.length || 0} tracks</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Render detailed view of a selected album with its tracks
+  const renderAlbumDetail = () => {
+    if (!selectedAlbum) return null;
+    
+    return (
+      <div className="album-detail">
+        <div className="album-detail-header">
+          <button className="back-button" onClick={handleBackFromAlbum}>
+            <ChevronLeft size={24} />
+          </button>
+          <div className="album-detail-info">
+            <div className="album-detail-image-container">
+              <img 
+                src={selectedAlbum.imageUrl || 'https://via.placeholder.com/300'} 
+                alt={selectedAlbum.albumName} 
+                className="album-detail-image"
+              />
+            </div>
+            <div className="album-detail-text">
+              <h2 className="album-detail-title">{selectedAlbum.albumName}</h2>
+              <p className="album-detail-artist">{selectedAlbum.artistId?.name || 'Unknown Artist'}</p>
+              <p className="album-detail-desc">{selectedAlbum.description}</p>
+              <p className="album-detail-count">
+                {selectedAlbum.tracks?.length || 0} tracks • 
+                {new Date(selectedAlbum.createdAt).getFullYear()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="album-tracks-list">
+          <h3 className="tracks-title">Tracks</h3>
+          {selectedAlbum.tracks && selectedAlbum.tracks.length > 0 ? (
+            <div className="tracks-container">
+              {selectedAlbum.tracks.map((track, index) => (
+                <div 
+                  key={track._id || index} 
+                  className={`track-item ${currentTrack && currentTrack._id === track._id ? 'active' : ''}`}
+                  onClick={() => handleTrackClick(track)}
+                >
+                  <div className="track-number">{index + 1}</div>
+                  <div className="track-image">
+                    <img 
+                      src={selectedAlbum.imageUrl || 'https://via.placeholder.com/80'} 
+                      alt={track.trackName} 
+                    />
+                    <div className="play-indicator">
+                      {isTrackPlaying(track) ? <Pause size={20} /> : <Play size={20} />}
+                    </div>
+                  </div>
+                  <div className="track-info">
+                    <h4 className="track-name">{track.trackName}</h4>
+                    <p className="track-duration">{track.duration || '0:00'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-tracks-message">No tracks available in this album</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render the albums view with loading and error states
+  const renderAlbumsView = () => {
+    // Show loading state
+    if (albumsLoading) {
+      return <div className="loading-state">Loading albums...</div>;
+    }
+
+    // Show error state
+    if (albumsError) {
+      return <div className="error-state">{albumsError}</div>;
+    }
+
+    // Render either album grid or album detail based on selection
+    return (
+      <div className="albums-view">
+        <h2 className="section-title">Albums</h2>
+        {selectedAlbum ? renderAlbumDetail() : renderAlbumsGrid()}
+      </div>
+    );
+  };
 
   const renderContent = () => {
     if (selectedArtist) return null;
@@ -331,9 +471,9 @@ const Listener = () => {
       case 'tracks':
         return renderTracksView();
       case 'albums':
-        return <div className="albums-view">Albums view will be implemented here.</div>;
+        return renderAlbumsView();
       case 'artists':
-        return <div className="artists-view">Artists view will be implemented here.</div>;
+        return <ArtistsView onTrackClick={handleTrackClick}/>;
       default:
         return renderDiscoverView();
     }
@@ -394,7 +534,7 @@ const Listener = () => {
                 </div>
                 <div className="player-track-details">
                   <h4>{currentTrack.trackName}</h4>
-                  <p>{currentTrack.artistName}</p>
+                  <p>{currentTrack.artistName || currentTrack.artistId?.name || 'Unknown Artist'}</p>
                 </div>
               </div>
               <div className="player-controls">
