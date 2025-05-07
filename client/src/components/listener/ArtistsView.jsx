@@ -3,6 +3,8 @@ import axios from 'axios';
 import { ChevronLeft } from 'lucide-react';
 import './ArtistsView.css';
 
+const apiSongUrl=import.meta.env.VITE_API_URL_SONG
+
 const ArtistsView = ({ onTrackClick }) => {
   const [artists, setArtists] = useState([]);
   const [selectedArtist, setSelectedArtist] = useState(null);
@@ -10,19 +12,20 @@ const ArtistsView = ({ onTrackClick }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  
+
   // Fetch all artists
   useEffect(() => {
     const fetchArtists = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5001/api/song/get-Artists');
+        const response = await axios.get(`${apiSongUrl}/get-Artists`);
         if (response.data.success) {
           setArtists(response.data.artists);
         } else {
           setError('Failed to fetch artists');
         }
       } catch (error) {
-        console.error('Error fetching artists:', error);
         setError('Error loading artists. Please try again later.');
       } finally {
         setLoading(false);
@@ -44,7 +47,7 @@ const ArtistsView = ({ onTrackClick }) => {
     try {
       setLoading(true);
       // We'll use the existing tracks endpoint but filter for this artist
-      const response = await axios.get('http://localhost:5001/api/song/get-tracks');
+      const response = await axios.get(`${apiSongUrl}/get-tracks`);
       if (response.data.success) {
         // Filter tracks by artist name
         const tracks = response.data.tracks.filter(
@@ -55,7 +58,6 @@ const ArtistsView = ({ onTrackClick }) => {
         setError('Failed to fetch artist tracks');
       }
     } catch (error) {
-      console.error('Error fetching artist tracks:', error);
       setError('Error loading artist tracks');
     } finally {
       setLoading(false);

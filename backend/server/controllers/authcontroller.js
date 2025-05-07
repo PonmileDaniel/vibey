@@ -32,26 +32,9 @@ export const register = async (req, res ) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV  ===  'production',
-            sameSite: process.env.NODE_ENV  ===  'production' ? 'none': 'strict',
+            sameSite: 'none',
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
-
-        // Sending a Welcome Email
-        // const mailOption = {
-        //     from: process.env.SENDER_EMAIL,
-        //     to: email,
-        //     subject: 'Welcome to Vibeyy',
-        //     text: 'Dear Vibe creator, Welcome onboard your account has been Created.'
-        // }
-
-        // try {
-        //     await transport.sendMail(mailOption)
-        //   } catch (err) {
-        //     console.error('Mail send failed:', err.message)
-        //   }
-          
-        // // await transport.sendMail(mailOption)
-
         return res.json({success: true})
 
         

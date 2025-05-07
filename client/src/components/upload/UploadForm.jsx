@@ -5,6 +5,8 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import AlbumTrackFields from './AlbumTrackFields';
 
+const apiSongUrl=import.meta.env.VITE_API_URL_SONG
+
 const UploadForm = ({ uploadType }) => {
   // State hooks to manage form data
   const [title, setTitle] = useState('');
@@ -67,8 +69,8 @@ const UploadForm = ({ uploadType }) => {
       // Decide which endpoint to use based on uploadType
       const endpoint =
         uploadType === 'album'
-          ? 'http://localhost:5001/api/song/upload-album'
-          : 'http://localhost:5001/api/song/upload';
+          ? `${apiSongUrl}/upload-album`
+          : `${apiSongUrl}/upload`;
 
       // Send POST request
       const res = await axios.post(endpoint, formData, config);

@@ -200,9 +200,6 @@ export const getIndiviualTracks = async (req, res) => {
     // Use Promise.all to handle multiple async calls efficiently
     const signedTracksPromises = tracks.map(async (track) => {
       const cleanAudioUrl = track.audioUrl.split('?')[0];
-      // Ensure the regex correctly isolates the file path including folders
-      // Example: if URL is https://f004.backblazeb2.com/file/my-music-bucket/artist1/song.mp3
-      // The relative path should be 'artist1/song.mp3'
       const relativeAudioPath = cleanAudioUrl.replace(/^https?:\/\/[^/]+\/file\/[^/]+\//, '');
       const audioCacheUrl = `signedUrl:audio:${relativeAudioPath}`;
 

@@ -8,6 +8,8 @@ import { Trash2, X, RefreshCw } from 'lucide-react';
 
 
 
+const apiSongUrl=import.meta.env.VITE_API_URL_SONG
+
 const CreatorUpload = () => {
   // State to control the current selected upload type/view
   const [uploadType, setUploadType] = useState('track');
@@ -29,7 +31,7 @@ const CreatorUpload = () => {
       setDeleteTrackIds(prev => [...prev, trackId]);
 
 
-      await axios.delete(`http://localhost:5001/api/song/delete-track/${trackId}`, {
+      await axios.delete(`${apiSongUrl}/delete-track/${trackId}`, {
         withCredentials: true,
       });
 
@@ -57,11 +59,11 @@ const CreatorUpload = () => {
         };
 
         // Fetch uploaded single tracks
-        const trackRes = await axios.get('http://localhost:5001/api/song/get-artist-track', config);
+        const trackRes = await axios.get(`${apiSongUrl}/get-artist-track`, config);
         setMyTracks(trackRes.data.tracks || []);
 
         // Fetch uploaded albums
-        const albumRes = await axios.get('http://localhost:5001/api/song/get-artist-album', config);
+        const albumRes = await axios.get(`${apiSongUrl}/get-artist-album`, config);
         setMyAlbums(albumRes.data.albums || []);
 
         toast.success('Content refreshed')

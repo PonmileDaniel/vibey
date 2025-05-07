@@ -1,36 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './listener.css';
 import './AlbumsView.css';
-import ArtistsView from './ArtistsView'; // Import the ArtistsView component
+import ArtistsView from './ArtistsView';
+import MusicPlayer from './MusicPlayer';
+import { ChevronLeft } from 'lucide-react';
 
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Volume2, 
-  VolumeX,
-  Repeat,
-  Shuffle,
-  ChevronLeft
-} from 'lucide-react';
+
+const apiSongUrl=import.meta.env.VITE_API_URL_SONG
 
 const Listener = () => {
   // State declarations
   const [activeView, setActiveView] = useState('discover');
   const [selectedArtist, setSelectedArtist] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [popularTracks, setPopularTracks] = useState([]);
   const [allTracks, setAllTracks] = useState([]);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isShuffling, setIsShuffling] = useState(false);
-  const [isRepeating, setIsRepeating] = useState(false);
   
   // Album states
   const [albums, setAlbums] = useState([]);
@@ -39,7 +26,6 @@ const Listener = () => {
   const [albumsError, setAlbumsError] = useState(null);
 
   const navigate = useNavigate();
-  const audioRef = useRef(new Audio());
 
   // Helper function for creating unique track identifiers
   const getTrackIdentifier = (track, index) => {
@@ -47,61 +33,10 @@ const Listener = () => {
     return `${track.trackName}-${track.artistName || track.artistId?.name || 'unknown'}-${track._id || track.createdAt || index}`;
   };
 
-  // Volume control functions
-  const handleVolumeChange = (e) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    audioRef.current.volume = newVolume;
-    
-    if (newVolume === 0) {
-      setIsMuted(true);
-    } else {
-      setIsMuted(false);
-    }
-  };
-  
-  const toggleMute = () => {
-    if (isMuted) {
-      audioRef.current.volume = volume;
-      setIsMuted(false);
-    } else {
-      audioRef.current.volume = 0;
-      setIsMuted(true);
-    }
-  };
-  
-  // Track navigation functions
-  const playPrevious = () => {
-    if (currentTrack) {
-      const currentIdentifier = getTrackIdentifier(currentTrack);
-      const currentIndex = allTracks.findIndex(track => getTrackIdentifier(track) === currentIdentifier);
-      const previousIndex = currentIndex > 0 ? currentIndex - 1 : allTracks.length - 1;
-      handleTrackClick(allTracks[previousIndex]);
-    }
-  };
-  
-  const playNext = () => {
-    if (currentTrack) {
-      const currentIdentifier = getTrackIdentifier(currentTrack);
-      const currentIndex = allTracks.findIndex(track => getTrackIdentifier(track) === currentIdentifier);
-      const nextIndex = currentIndex < allTracks.length - 1 ? currentIndex + 1 : 0;
-      handleTrackClick(allTracks[nextIndex]);
-    }
-  };
-  
-  // Player mode functions
-  const toggleShuffle = () => {
-    setIsShuffling(!isShuffling);
-  };
-  
-  const toggleRepeat = () => {
-    setIsRepeating(!isRepeating);
-  };
-
   // Fetch tracks from the API
   const fetchTracks = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/song/get-tracks');
+      const response = await axios.get(`${apiSongUrl}/get-tracks`);
       if (response.data.success) {
         setPopularTracks(response.data.tracks);
         setAllTracks(response.data.tracks);
@@ -117,14 +52,13 @@ const Listener = () => {
   const fetchAlbums = async () => {
     try {
       setAlbumsLoading(true);
-      const response = await axios.get('http://localhost:5001/api/song/get-albums');
+      const response = await axios.get(`${apiSongUrl}/get-albums`);
       if (response.data.success) {
         setAlbums(response.data.albums);
       } else {
         setAlbumsError('Failed to fetch albums');
       }
     } catch (error) {
-      console.error('Error fetching albums:', error);
       setAlbumsError('Error loading albums. Please try again later.');
     } finally {
       setAlbumsLoading(false);
@@ -147,71 +81,16 @@ const Listener = () => {
       return;
     }
     
-    // For a different track
-    // 1. First update the state with isPlaying = false to properly pause any current audio
-    setIsPlaying(false);
-
-    // 2. Use a slight delay to ensure the pause takes effect
-    setTimeout(() => {
-      // 3. Reset and Update audio
-      const audio = audioRef.current;
-      audio.pause();
-      audio.currentTime = 0;
-
-      //4. Update track state first
-      setCurrentTrack({...track});
-
-      //5. Only then Update the audio source
-      audio.src = track.audioUrl;
-
-      //6. Set up a proper load and play sequence with proper error handling
-      const playWhenReady = () => {
-        // Remove the event listener to prevent multiple triggers
-        audio.removeEventListener('canplaythrough', playWhenReady);
-
-        // Set playing state to true and then play
-        setIsPlaying(true);
-
-        // Small delay to ensure React State is updated
-        setTimeout(() => {
-          const playPromise = audio.play();
-
-          // Handle the play promise properly
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                console.log("Successfully playing new track:", track.trackName);
-              })
-              .catch(error => {
-                console.error("Error playing new track:", error);
-                // Only update state if this still the current track
-                if (isSameTrack(currentTrack, track)) {
-                  setIsPlaying(false);
-                }
-              });
-          }
-        }, 50);
-      };
-      
-      // Set up event listener for when audio can play
-      audio.addEventListener('canplaythrough', playWhenReady);
-      
-      // Force load to trigger the canplaythrough event
-      audio.load();
-    }, 50); // Short delay to ensure pause completes
+    // For a different track, update the currentTrack
+    setCurrentTrack({...track});
+    setIsPlaying(true);
   };
 
-  // Helper functions for UI
-  const formatTime = (time) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const handleSeek = (e) => {
-    const newTime = parseFloat(e.target.value);
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
+  // Check if a track is currently playing
+  const isTrackPlaying = (track) => {
+    return currentTrack && 
+           currentTrack.trackName === track.trackName && 
+           isPlaying;
   };
 
   // Handle album selection
@@ -224,7 +103,7 @@ const Listener = () => {
     setSelectedAlbum(null);
   };
 
-  // Initialize and fetch data - FIXED to not stop music when changing views
+  // Initialize and fetch data
   useEffect(() => {
     // Initial data fetch when component mounts
     fetchTracks();
@@ -236,59 +115,6 @@ const Listener = () => {
       fetchAlbums();
     }
   }, [activeView]);
-
-  // Audio cleanup - only when component unmounts
-  useEffect(() => {
-    return () => {
-      audioRef.current.pause();
-      audioRef.current.src = '';
-    };
-  }, []); // Empty dependency array means this only runs on unmount
-
-  // Setup audio event listeners
-  useEffect(() => {
-    const audio = audioRef.current;
-
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleDurationChange = () => setDuration(audio.duration);
-    const handleEnded = () => {
-      if (isRepeating) {
-        audio.currentTime = 0;
-        audio.play();
-      } else if (isShuffling) {
-        const randomIndex = Math.floor(Math.random() * allTracks.length);
-        handleTrackClick(allTracks[randomIndex]);
-      } else {
-        playNext();
-      }
-    };
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleDurationChange);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleDurationChange);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [isRepeating, isShuffling, allTracks, playNext, handleTrackClick]);
-
-  // Handle play/pause state changes
-  useEffect(() => {
-    const audio = audioRef.current;
-    
-    if (isPlaying) {
-      // If we should be playing, try to play
-      audio.play().catch(error => {
-        console.error('Error playing audio:', error);
-        setIsPlaying(false);
-      });
-    } else {
-      // Otherwise pause
-      audio.pause();
-    }
-  }, [isPlaying]); // Only depend on isPlaying, not currentTrack
 
   // View rendering functions
   const renderDiscoverView = () => (
@@ -342,13 +168,6 @@ const Listener = () => {
       </div>
     </div>
   );
-
-  // Check if a track is currently playing
-  const isTrackPlaying = (track) => {
-    return currentTrack && 
-           currentTrack.trackName === track.trackName && 
-           isPlaying;
-  };
 
   // Render the albums grid view
   const renderAlbumsGrid = () => (
@@ -423,7 +242,14 @@ const Listener = () => {
                       alt={track.trackName} 
                     />
                     <div className="play-indicator">
-                      {isTrackPlaying(track) ? <Pause size={20} /> : <Play size={20} />}
+                      {isTrackPlaying(track) ? 
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="6" y="4" width="4" height="16"></rect>
+                          <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg> : 
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>}
                     </div>
                   </div>
                   <div className="track-info">
@@ -524,88 +350,13 @@ const Listener = () => {
 
       <main className="main-content">{renderContent()}</main>
 
-      <footer className={`player-bar ${currentTrack ? 'visible' : 'hidden'}`}>
-        <div className="player-container">
-          {currentTrack && (
-            <>
-              <div className="player-track-info">
-                <div className="player-track-image">
-                  <img src={currentTrack.imageUrl || 'https://via.placeholder.com/200'} alt={currentTrack.trackName} />
-                </div>
-                <div className="player-track-details">
-                  <h4>{currentTrack.trackName}</h4>
-                  <p>{currentTrack.artistName || currentTrack.artistId?.name || 'Unknown Artist'}</p>
-                </div>
-              </div>
-              <div className="player-controls">
-                <div className="control-buttons">
-                  <button 
-                    className={`control-button ${isShuffling ? 'active' : ''}`}
-                    onClick={toggleShuffle}
-                  >
-                    <Shuffle size={20} />
-                  </button>
-                  <button 
-                    className="control-button"
-                    onClick={playPrevious}
-                  >
-                    <SkipBack size={24} />
-                  </button>
-                  <button 
-                    className="play-pause-button"
-                    onClick={() => setIsPlaying(!isPlaying)}
-                  >
-                    {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-                  </button>
-                  <button 
-                    className="control-button"
-                    onClick={playNext}
-                  >
-                    <SkipForward size={24} />
-                  </button>
-                  <button 
-                    className={`control-button ${isRepeating ? 'active' : ''}`}
-                    onClick={toggleRepeat}
-                  >
-                    <Repeat size={20} />
-                  </button>
-                </div>
-                <div className="audio-controls">
-                  <input
-                    type="range"
-                    min="0"
-                    max={duration || 0}
-                    value={currentTime}
-                    onChange={handleSeek}
-                    className="progress-bar"
-                  />
-                  <div className="time-display">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="volume-controls">
-                <button 
-                  className="control-button"
-                  onClick={toggleMute}
-                >
-                  {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolumeChange}
-                  className="volume-slider"
-                />
-              </div>
-            </>
-          )}
-        </div>
-      </footer>
+      <MusicPlayer 
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        setIsPlaying={setIsPlaying}
+        allTracks={allTracks}
+        onTrackChange={setCurrentTrack}
+      />
     </div>
   );
 };
