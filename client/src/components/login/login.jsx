@@ -87,7 +87,7 @@ const Login = () => {
 
         <div className="creator-login-section">
           Don't have a creator account yet?{' '}
-          <Link to="/" className="creator-login-link">Sign Up</Link>
+          <Link to="/signup" className="creator-login-link">Sign Up</Link>
         </div>
       </div>
     </AnimatedBackground>
